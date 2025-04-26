@@ -46,7 +46,7 @@ if uploaded_file:
     with st.spinner("🔍 Scanning your contract..."):
         # Send to backend
         response = requests.post(
-            "http://localhost:5000/analyze",  # Change to your Replit URL
+            "http://0.0.0.0:5000/analyze",  # Change to your Replit URL
             files={"file": uploaded_file},
             timeout=15
         )
