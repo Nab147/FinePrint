@@ -1,4 +1,7 @@
 flask
 flask-cors
 PyPDF2
-python-dotenv  # For environment variables
+python-dotenv
+google
+google-auth
+google-generativeai==0.2.0
