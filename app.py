@@ -45,63 +45,60 @@ uploaded_file = st.file_uploader(
 if uploaded_file:
     with st.spinner("🔍 Scanning your contract..."):
         # Send to backend
-        response = requests.post(
-            "http://0.0.0.0:5000/analyze",  # Change to your Replit URL
-            files={"file": uploaded_file},
-            timeout=15
-        )
-        
-        if response.status_code == 200:
-            data = response.json()
-            
-            # Success display
-            st.success("Analysis complete!")
-            
-            # Results tabs
-            tab1, tab2 = st.tabs(["📋 Plain English Summary", "📊 Detailed Analysis"])
-            
-            with tab1:
-                st.markdown(data["result_text"])
-                
-                # Viral sharing
-                st.divider()
-                st.markdown("**Found something shady?**")
-                cols = st.columns(3)
-                cols[0].button("Tweet This Clause 🐦", 
-                              help="Share your worst clause")
-                cols[1].button("Copy as Email 📧", 
-                              help="Paste into an email to negotiate")
-                cols[2].download_button(
-                    "Save as PDF 💾",
-                    data=data["result_text"],
-                    file_name=f"contract-analysis-{datetime.now().date()}.txt",
-                    mime="text/plain"
-                )
-            
-            with tab2:
-                st.json(data["result_json"])
-            
-            # Conversion upsell
-            st.divider()
-            st.markdown("""
-            <div style="background-color:#f0f2f6;padding:20px;border-radius:10px">
-            <h4 style="color:#1e3a8a">🔓 Want More Power?</h4>
-            <ul>
-                <li>Unlimited contract scans</li>
-                <li>Pre-written negotiation emails</li>
-                <li>Priority support</li>
-            </ul>
-            </div>
-            """, unsafe_allow_html=True)
-            
-            st.link_button(
-                "Get Premium ($5/month)",
-                "https://gumroad.com/yourlink",
-                type="primary"
+        try:
+            response = requests.post(
+                "https://python-template.replit.app/analyze",  # Updated to your Replit deployment URL
+                files={"file": uploaded_file},
+                timeout=30
             )
             
-        else:
-            st.error(f"Error {response.status_code}: {response.text}")
+            if response.status_code == 200:
+                data = response.json()
+                
+                # Success display
+                st.success("Analysis complete!")
+                
+                # Results tabs
+                tab1, tab2 = st.tabs(["📋 Plain English Summary", "📊 Detailed Analysis"])
+                
+                with tab1:
+                    st.markdown(data["result_text"])
+                    
+                    # Sharing options
+                    st.divider()
+                    st.markdown("**Found something shady?**")
+                    cols = st.columns(3)
+                    cols[0].button("Share Analysis 🔗", 
+                                  help="Share your analysis")
+                    cols[1].button("Copy Results 📋", 
+                                  help="Copy to clipboard")
+                    cols[2].download_button(
+                        "Save as PDF 💾",
+                        data=data["result_text"],
+                        file_name=f"contract-analysis-{datetime.now().date()}.txt",
+                        mime="text/plain"
+                    )
+                
+                with tab2:
+                    st.json(data["result_json"])
+                
+                # Feature preview
+                st.divider()
+                st.markdown("""
+                <div style="background-color:#f0f2f6;padding:20px;border-radius:10px">
+                <h4 style="color:#1e3a8a">🔓 Coming Soon</h4>
+                <ul>
+                    <li>Batch contract analysis</li>
+                    <li>Custom templates</li>
+                    <li>Advanced reporting</li>
+                </ul>
+                </div>
+                """, unsafe_allow_html=True)
+                
+            else:
+                st.error(f"Error: Could not analyze contract. Please try again.")
+        except Exception as e:
+            st.error(f"Connection error. Please try again later.")
 
 # Sidebar for user feedback
 with st.sidebar:
