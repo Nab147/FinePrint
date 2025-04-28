@@ -7,7 +7,7 @@ app = Flask(__name__)
 
 # Configure Gemini
 genai.configure(api_key=os.getenv("Fineprint"))
-model = genai.GenerativeModel('gemini-2.0')
+model = genai.GenerativeModel('gemini-2.0-flash')
 
 def clean_analysis(text):
     satire_keywords = ["satirical", "teaching example", "demonstration", "how not to"]
