@@ -7,7 +7,7 @@ app = Flask(__name__)
 
 # Configure Gemini
 genai.configure(api_key=os.getenv("Fineprint"))
-model = genai.GenerativeModel('gemini-1.5-pro')
+model = genai.GenerativeModel('gemini-2.0')
 
 def clean_analysis(text):
     satire_keywords = ["satirical", "teaching example", "demonstration", "how not to"]
@@ -110,12 +110,7 @@ def analyze():
         Example:
         1. "Consultant may not replace staff without approval"
         2. Risk: Creates operational inflexibility if key staff leave
-        3. Fix: "Consultant may replace staff with equally qualified personnel, with notice to Commission" 
-        Pay special attention to:
-- Termination clauses with unequal notice periods
-- Overly broad indemnification language
-- Intellectual property ownership clauses
-- Insurance requirements that may be excessive"""
+        3. Fix: Consultant may replace staff with equally qualified personnel, with notice to Commission"""
 
         response = model.generate_content(
             prompt + text,
