@@ -7,82 +7,51 @@ app = Flask(__name__)
 
 # Configure Gemini
 genai.configure(api_key=os.getenv("Fineprint"))
-model = genai.GenerativeModel('gemini-2.0-flash')
+model = genai.GenerativeModel('gemini-1.5-pro')
 
 def clean_analysis(text):
-    satire_keywords = ["satirical", "teaching example", "demonstration", "how not to"]
+    unfair_clauses = []
+    clauses = text.split("\n\n")  # Split into clauses
 
-    if any(keyword in text.lower() for keyword in satire_keywords):
-        lines = [line.strip() for line in text.split('\n') if line.strip()]
-        purpose = ""
-        positive_principles = []
-        negative_examples = []
-
-        for line in lines:
-            if "**Teaching Purpose:**" in line:
-                purpose = line.replace("**Teaching Purpose:**", "").strip()
-            elif "**Key Lessons:**" in line:
-                continue
-            elif line.startswith("* ") and "**" in line:
-                positive_principles.append(line[2:].replace("**", "").strip())
-            elif "**Drafting Principles Demonstrated**" in line:
-                continue
-            elif line.startswith("* "):
-                negative_examples.append(line[2:].replace("**", "").strip())
-
-        return {
-            "document_type": "educational",
-            "summary": "Educational Content Detected",
-            "key_insights": {
-                "teaching_purpose": purpose,
-                "key_principles": positive_principles,
-                "anti_patterns": negative_examples
-            }
-        }
-    else:
-        unfair_clauses = []
-        for clause in text.split("\n\n"):
-            if clause.strip():
-                parts = clause.split("\n")
+    for clause in clauses:
+        if clause.strip():
+            parts = clause.split("|||")  # Expecting your new format
+            if len(parts) == 3:
+                clause_text = parts[0].strip()
+                risk = parts[1].strip()
+                fix = parts[2].strip()
                 unfair_clauses.append({
-                    "clause": parts[0].strip() if parts else "Not specified",
-                    "risk": parts[1].strip() if len(parts) > 1 else "Not specified",
-                    "fix": parts[2].strip() if len(parts) > 2 else "Not provided"
+                    "clause": clause_text,
+                    "risk": risk,
+                    "fix": fix
                 })
-        return {
-            "document_type": "contract",
-            "summary": "Contract Analysis Complete",
-            "unfair_clauses": unfair_clauses
-        }
+            # Handle cases where the model doesn't perfectly follow the format
+            elif len(parts) > 0:
+              clause_text = parts[0].strip()
+              unfair_clauses.append({
+                  "clause": clause_text,
+                  "risk": "Not specified",
+                  "fix": "Not provided"
+              })
+
+    return {
+        "document_type": "contract",
+        "summary": "Contract Analysis Complete",
+        "unfair_clauses": unfair_clauses
+    }
 
 def format_analysis_for_layman(analysis_result):
-    if analysis_result["document_type"] == "educational":
-        output = "This document appears to be for educational purposes.\n\n"
-        output += f"**Teaching Objective:** {analysis_result['key_insights']['teaching_purpose']}\n\n"
-        if analysis_result['key_insights']['key_principles']:
-            output += "**Key Principles of Good Drafting:**\n"
-            for principle in analysis_result['key_insights']['key_principles']:
-                output += f"- {principle}\n"
-            output += "\n"
-        if analysis_result['key_insights']['anti_patterns']:
-            output += "**Things to Avoid (Anti-Patterns):**\n"
-            for anti_pattern in analysis_result['key_insights']['anti_patterns']:
-                output += f"- {anti_pattern}\n"
-        return output
-    elif analysis_result["document_type"] == "contract":
-        output = "This document appears to be a contract.\n\n"
-        if analysis_result["unfair_clauses"]:
-            output += "**Potentially Problematic Clauses Identified:**\n\n"
-            for i, clause_analysis in enumerate(analysis_result["unfair_clauses"]):
-                output += f"--- Clause {i+1} ---\n"
-                output += f"**Quoted Text:** {clause_analysis['clause']}\n"
-                output += f"**Potential Risk:** {clause_analysis['risk']}\n"
-                output += f"**Suggested Fix:** {clause_analysis['fix']}\n\n"
-        else:
-            output += "No specific unfair clauses were identified in this initial analysis.\n"
-        return output
+    output = "This document appears to be a contract.\n\n"
+    if analysis_result["unfair_clauses"]:
+        output += "**Potentially Problematic Clauses Identified:**\n\n"
+        for i, clause_analysis in enumerate(analysis_result["unfair_clauses"]):
+            output += f"--- Clause {i+1} ---\n"
+            output += f"**Quoted Text:** {clause_analysis['clause']}\n"
+            output += f"**Potential Risk:** {clause_analysis['risk']}\n"
+            output += f"**Suggested Fix:** {clause_analysis['fix']}\n\n"
     else:
-        return "Analysis could not be formatted for layman's terms."
+        output += "No specific unfair clauses were identified in this initial analysis.\n"
+    return output
 
 @app.route('/analyze', methods=['POST'])
 def analyze():
@@ -102,15 +71,29 @@ def analyze():
         except Exception as e:
             return jsonify({"error": f"PDF processing error: {str(e)}"}), 400
 
-        prompt = """Analyze this contract. For each potentially unfair clause:
-        1. [EXACT QUOTE] - Copy the full clause text
-        2. [RISK] - Explain the legal/business risk (1-2 sentences)
-        3. [FIX] - Suggest specific alternative wording
+        prompt = """
+        Analyze the following contract and identify potentially unfair clauses. 
+        Focus on clauses that could disadvantage one party.
+        For each such clause, provide:
+
+        1.  [EXACT QUOTE] - Copy the full clause text.
+        2.  [RISK] - Explain the legal/business risk in plain language (1-2 sentences).
+        3.  [FIX] - Suggest specific alternative wording to make it fairer.
+
+        Separate each part with "|||".  Separate each clause analysis with two newlines.
 
         Example:
-        1. "Consultant may not replace staff without approval"
-        2. Risk: Creates operational inflexibility if key staff leave
-        3. Fix: Consultant may replace staff with equally qualified personnel, with notice to Commission"""
+        1.  "Consultant may not replace staff without approval" ||| 
+        2.  Risk: This gives the client excessive control and could delay the project if approval is slow. ||| 
+        3.  Fix: "Consultant may replace staff with equally qualified personnel, with notice to Client."
+
+        Pay special attention to:
+        -   Termination clauses (especially unequal notice)
+        -   Indemnification (if one-sided or overly broad)
+        -   Intellectual property ownership
+        -   Liability limitations
+        -   Payment terms
+        """
 
         response = model.generate_content(
             prompt + text,
