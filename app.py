@@ -45,11 +45,12 @@ def main():
                     tab1, tab2 = st.tabs(["📋 Plain English Summary", "📊 Detailed Analysis"])
 
                     with tab1:
-                        if data["document_type"] == "educational":
+                        doc_type = data.get("document_type")
+                        if doc_type == "educational":
                             st.info("This document appears to be educational. The analysis below highlights potential drafting principles and anti-patterns.")
-                            if data["result_text"]:
+                            if data.get("result_text"):
                                 st.markdown(data["result_text"])
-                        elif data["document_type"] == "contract":
+                        elif doc_type == "contract":
                             st.markdown(data["result_text"])
                         else:
                             st.warning("Could not determine the document type for a plain English summary.")
@@ -67,20 +68,21 @@ def main():
                         )
 
                     with tab2:
-                        if data["document_type"] == "educational":
+                        doc_type = data.get("document_type")
+                        if doc_type == "educational":
                             st.subheader("Educational Insights")
-                            if data["result_json"].get("key_insights"):
+                            if data.get("result_json", {}).get("key_insights"):
                                 st.json(data["result_json"]["key_insights"])
                             else:
                                 st.info("No detailed educational insights found.")
-                        elif data["document_type"] == "contract" and data["result_json"].get("unfair_clauses"):
+                        elif doc_type == "contract" and data.get("result_json", {}).get("unfair_clauses"):
                             st.subheader("Potentially Problematic Clauses")
                             for i, clause in enumerate(data["result_json"]["unfair_clauses"]):
                                 with st.expander(f"Clause {i+1}: {clause['clause'][:100]}..."):
                                     st.markdown(f"**Quoted Text:**\n> {clause['clause']}")
                                     st.error(f"**Potential Risk:** {clause['risk']}")
                                     st.info(f"**Suggested Fix:** {clause['fix']}")
-                        elif data["document_type"] == "contract":
+                        elif doc_type == "contract":
                             st.info("No specific unfair clauses were identified in the detailed analysis.")
                         else:
                             st.warning("Detailed analysis is not available for this document type.")
