@@ -69,7 +69,10 @@ def main():
                     with tab2:
                         if data["document_type"] == "educational":
                             st.subheader("Educational Insights")
-                            st.json(data["result_json"]["key_insights"])
+                            if data["result_json"].get("key_insights"):
+                                st.json(data["result_json"]["key_insights"])
+                            else:
+                                st.info("No detailed educational insights found.")
                         elif data["document_type"] == "contract" and data["result_json"].get("unfair_clauses"):
                             st.subheader("Potentially Problematic Clauses")
                             for i, clause in enumerate(data["result_json"]["unfair_clauses"]):
