@@ -2,7 +2,7 @@ import streamlit as st
 import requests
 from datetime import datetime
 
-# Configure page (remove page_title here)
+# Configure page
 st.set_page_config(
     page_icon="📄",
     layout="wide",
@@ -12,17 +12,21 @@ st.set_page_config(
 # CSS (same as before)
 st.markdown(...)
 
-# Header with logo (moved title here)
+# Header with logo
 def main():
     col1, col2 = st.columns([1, 4])
     with col1:
         st.image("https://via.placeholder.com/100x100?text=FP", width=80)
     with col2:
-        st.title("FinePrint AI") # Set title here
+        st.title("FinePrint AI")
         st.caption("Spot shady contract clauses in seconds")
 
-    # File upload (same as before)
-    uploaded_file = st.file_uploader(...)
+    # File upload
+    uploaded_file = st.file_uploader(
+        "**Upload your contract (PDF)**",
+        type=["pdf"],
+        help="We never store your files after analysis"
+    )
 
     if uploaded_file:
         with st.spinner("🔍 Scanning your contract..."):
