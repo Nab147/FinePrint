@@ -29,54 +29,36 @@ uploaded_file = st.file_uploader(
 )
 
 if uploaded_file:
-    st.info(f"Uploaded file: {uploaded_file.name}") # Visual feedback of uploaded file
-    with st.spinner("🔍 Scanning your contract..."):
-        # ... (rest of your backend call and response handling) ...
-
-        if response.status_code == 200:
-            data = response.json()
-            st.success("✅ Analysis complete!") # More engaging success icon
-
-            tab1, tab2 = st.tabs(["📋 Plain English Summary", "📊 Detailed Analysis"])
-
-            with tab1:
-                if "result_text" in data:
-                    st.markdown(data["result_text"]) # Assuming backend might format with Markdown
-                else:
-                    st.info("No plain English summary available.")
-
-                st.divider()
-                st.markdown("**Found something shady?**")
-                cols = st.columns(3)
-                cols[0].button("🔗 Share", help="Share your analysis") # Icon
-                cols[1].button("📋 Copy", help="Copy to clipboard") # Icon
-                cols[2].download_button(
-                    "💾 Save as PDF", # Icon
-                    data=data.get("result_text", "No analysis available."),
-                    file_name=f"contract-analysis-{datetime.now().date()}.txt",
-                    mime="text/plain"
+        with st.spinner("🔍 Scanning your contract..."):
+            try:
+                response = requests.post(
+                    "https://fineprint.onrender.com/analyze",
+                    files={"file": uploaded_file},
+                    timeout=30
                 )
 
-            with tab2:
-                st.subheader("Detailed Analysis (JSON)") # More explicit title
-                st.json(data["result_json"])
+                if response.status_code == 200:
+                    data = response.json()
 
-            st.divider()
-            st.markdown("""
-            <div style="background-color:#f0f2f6;padding:20px;border-radius:10px">
-            <h4 style="color:#1e3a8a">🔓 Coming Soon</h4>
-            <ul>
-                <li>🚀 Batch contract analysis</li>
-                <li>⚙️ Custom templates</li>
-                <li>📊 Advanced reporting</li>
-            </ul>
-            </div>
-            """, unsafe_allow_html=True)
+                    st.success("Analysis complete!")
 
-        else:
-            st.error(f"Error: Could not analyze contract. Please try again.")
-    except Exception as e:
-        st.error(f"Connection error. Please try again later.")
+                    tab1, tab2 = st.tabs(["📋 Plain English Summary", "📊 Detailed Analysis"])
+
+                    with tab1:
+                        # ... (rest of tab1 code) ...
+
+                    with tab2:
+                        # ... (rest of tab2 code) ...
+
+                    st.divider()
+                    st.markdown(""" ... """, unsafe_allow_html=True)
+
+                else:
+                    st.error(f"Error: Could not analyze contract. Status code: {response.status_code}")
+            except requests.exceptions.ConnectionError as e:
+                st.error(f"Connection error. Please check your internet connection and try again later.")
+            except Exception as e:  # <---- ENSURE THIS LINE ENDS WITH A COLON (:)
+                st.error(f"An unexpected error occurred: {e}")
 
 # Sidebar and Footer (same as before)
 with st.sidebar:
