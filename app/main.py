@@ -1,120 +1,113 @@
-import streamlit as st
-import requests
-from datetime import datetime
+from flask import Flask, request, jsonify
+import PyPDF2
+import os
+import google.generativeai as genai
 
-# Configure page
-st.set_page_config(
-    page_title="🔍 FinePrint AI",
-    page_icon="📄",
-    layout="wide",
-    initial_sidebar_state="expanded"
-)
+app = Flask(__name__)
 
-# CSS for better mobile display
-st.markdown("""
-<style>
-    .stButton>button {
-        width: 100%;
+# Configure Gemini
+genai.configure(api_key=os.getenv("Fineprint"))
+model = genai.GenerativeModel('gemini-1.5-pro')
+
+def clean_analysis(text):
+    unfair_clauses = []
+    clauses = text.split("\n\n")  # Split into clauses
+
+    for clause in clauses:
+        if clause.strip():
+            parts = clause.split("|||")  # Expecting your new format
+            if len(parts) == 3:
+                clause_text = parts[0].strip()
+                risk = parts[1].strip()
+                fix = parts[2].strip()
+                unfair_clauses.append({
+                    "clause": clause_text,
+                    "risk": risk,
+                    "fix": fix
+                })
+            # Handle cases where the model doesn't perfectly follow the format
+            elif len(parts) > 0:
+              clause_text = parts[0].strip()
+              unfair_clauses.append({
+                  "clause": clause_text,
+                  "risk": "Not specified",
+                  "fix": "Not provided"
+              })
+
+    return {
+        "document_type": "contract",
+        "summary": "Contract Analysis Complete",
+        "unfair_clauses": unfair_clauses
     }
-    .stDownloadButton>button {
-        width: 100%;
-    }
-    @media (max-width: 768px) {
-        .stMarkdown h1 {
-            font-size: 1.5rem !important;
-        }
-    }
-</style>
-""", unsafe_allow_html=True)
 
-# Header with logo
-col1, col2 = st.columns([1, 4])
-with col1:
-    st.image("https://via.placeholder.com/100x100?text=FP", width=80)
-with col2:
-    st.title("FinePrint AI")
-    st.caption("Spot shady contract clauses in seconds")
+def format_analysis_for_layman(analysis_result):
+    output = "This document appears to be a contract.\n\n"
+    if analysis_result["unfair_clauses"]:
+        output += "**Potentially Problematic Clauses Identified:**\n\n"
+        for i, clause_analysis in enumerate(analysis_result["unfair_clauses"]):
+            output += f"--- Clause {i+1} ---\n"
+            output += f"**Quoted Text:** {clause_analysis['clause']}\n"
+            output += f"**Potential Risk:** {clause_analysis['risk']}\n"
+            output += f"**Suggested Fix:** {clause_analysis['fix']}\n\n"
+    else:
+        output += "No specific unfair clauses were identified in this initial analysis.\n"
+    return output
 
-# File upload
-uploaded_file = st.file_uploader(
-    "**Upload your contract (PDF)**",
-    type="pdf",
-    help="We never store your files after analysis"
-)
+@app.route('/analyze', methods=['POST'])
+def analyze():
+    try:
+        if 'file' not in request.files:
+            return jsonify({"error": "No file uploaded"}), 400
 
-if uploaded_file:
-    with st.spinner("🔍 Scanning your contract..."):
-        # Send to backend
+        pdf_file = request.files['file']
+
+        if not pdf_file.filename.lower().endswith('.pdf'):
+            return jsonify({"error": "Only PDF files are supported"}), 400
+
         try:
-            response = requests.post(
-                "https://fineprint.onrender.com/analyze",  # Updated to your Replit deployment URL
-                files={"file": uploaded_file},
-                timeout=30
-            )
-            
-            if response.status_code == 200:
-                data = response.json()
-                
-                # Success display
-                st.success("Analysis complete!")
-                
-                # Results tabs
-                tab1, tab2 = st.tabs(["📋 Plain English Summary", "📊 Detailed Analysis"])
-                
-                with tab1:
-                    st.markdown(data["result_text"])
-                    
-                    # Sharing options
-                    st.divider()
-                    st.markdown("**Found something shady?**")
-                    cols = st.columns(3)
-                    cols[0].button("Share Analysis 🔗", 
-                                  help="Share your analysis")
-                    cols[1].button("Copy Results 📋", 
-                                  help="Copy to clipboard")
-                    cols[2].download_button(
-                        "Save as PDF 💾",
-                        data=data["result_text"],
-                        file_name=f"contract-analysis-{datetime.now().date()}.txt",
-                        mime="text/plain"
-                    )
-                
-                with tab2:
-                    st.json(data["result_json"])
-                
-                # Feature preview
-                st.divider()
-                st.markdown("""
-                <div style="background-color:#f0f2f6;padding:20px;border-radius:10px">
-                <h4 style="color:#1e3a8a">🔓 Coming Soon</h4>
-                <ul>
-                    <li>Batch contract analysis</li>
-                    <li>Custom templates</li>
-                    <li>Advanced reporting</li>
-                </ul>
-                </div>
-                """, unsafe_allow_html=True)
-                
-            else:
-                st.error(f"Error: Could not analyze contract. Please try again.")
+            text = PyPDF2.PdfReader(pdf_file).pages[0].extract_text()[:3000]
+            if not text.strip():
+                return jsonify({"error": "Empty PDF or no text extracted"}), 400
         except Exception as e:
-            st.error(f"Connection error. Please try again later.")
+            return jsonify({"error": f"PDF processing error: {str(e)}"}), 400
 
-# Sidebar for user feedback
-with st.sidebar:
-    st.markdown("### Help Improve FinePrint")
-    with st.form(key='feedback'):
-        rating = st.slider("How useful was this?", 1, 5, 3)
-        comments = st.text_area("What could be better?")
-        submitted = st.form_submit_button("Submit Feedback")
-        if submitted:
-            st.success("Thanks! We'll use this to improve.")
+        prompt = """
+        Analyze the following contract and identify potentially unfair clauses. 
+        Focus on clauses that could disadvantage one party.
+        For each such clause, provide:
 
-# Footer
-st.markdown("---")
-st.markdown("""
-<small>
-⚠️ Disclaimer: FinePrint AI provides educational insights only, not legal advice. 
-Consult an attorney for contract review.
-</small>
-""", unsafe_allow_html=True)
+        1.  [EXACT QUOTE] - Copy the full clause text.
+        2.  [RISK] - Explain the legal/business risk in plain language (1-2 sentences).
+        3.  [FIX] - Suggest specific alternative wording to make it fairer.
+
+        Separate each part with "|||".  Separate each clause analysis with two newlines.
+
+        Example:
+        1.  "Consultant may not replace staff without approval" ||| 
+        2.  Risk: This gives the client excessive control and could delay the project if approval is slow. ||| 
+        3.  Fix: "Consultant may replace staff with equally qualified personnel, with notice to Client."
+
+        Pay special attention to:
+        -   Termination clauses (especially unequal notice)
+        -   Indemnification (if one-sided or overly broad)
+        -   Intellectual property ownership
+        -   Liability limitations
+        -   Payment terms
+        """
+
+        response = model.generate_content(
+            prompt + text,
+            generation_config={"temperature": 0.2}
+        )
+
+        raw_output = response.text if hasattr(response, 'text') else str(response)
+        cleaned = clean_analysis(raw_output)
+        layman_output = format_analysis_for_layman(cleaned)
+
+        return jsonify({"result_json": cleaned, "result_text": layman_output}), 200
+
+    except Exception as e:
+        return jsonify({"error": f"Analysis failed: {str(e)}"}), 500
+
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=5000, debug=True)
