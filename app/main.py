@@ -1,113 +1,131 @@
-from flask import Flask, request, jsonify
-import PyPDF2
-import os
-import google.generativeai as genai
+import streamlit as st
+import requests
+from datetime import datetime
+import streamlit.components.v1 as components
 
-app = Flask(__name__)
+# Configure page
+st.set_page_config(page_title="🔍 FinePrint AI", page_icon="📄", layout="wide", initial_sidebar_state="expanded")
 
-# Configure Gemini
-genai.configure(api_key=os.getenv("Fineprint"))
-model = genai.GenerativeModel('gemini-1.5-pro')
+# Modern styling
+st.markdown("""
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap');
+:root {
+    --primary: #1e3a8a;
+    --secondary: #f0f2f6;
+    --accent: #3b82f6;
+}
+body, .stMarkdown, .stButton>button {
+    font-family: 'Inter', sans-serif;
+}
+.stButton>button {
+    background-color: var(--accent);
+    color: white;
+    border-radius: 8px;
+    padding: 12px;
+    width: 100%;
+}
+.stButton>button:hover {
+    transform: scale(1.05);
+    transition: transform 0.2s;
+}
+@media (max-width: 768px) {
+    .stMarkdown h1 { font-size: 1.5rem !important; }
+}
+</style>
+""", unsafe_allow_html=True)
 
-def clean_analysis(text):
-    unfair_clauses = []
-    clauses = text.split("\n\n")  # Split into clauses
+# Header
+col1, col2 = st.columns([1, 4])
+with col1:
+    st.image("logo.png", width=80, caption="FinePrint AI Logo")
+with col2:
+    st.title("FinePrint AI")
+    st.caption("Spot shady contract clauses in seconds")
 
-    for clause in clauses:
-        if clause.strip():
-            parts = clause.split("|||")  # Expecting your new format
-            if len(parts) == 3:
-                clause_text = parts[0].strip()
-                risk = parts[1].strip()
-                fix = parts[2].strip()
-                unfair_clauses.append({
-                    "clause": clause_text,
-                    "risk": risk,
-                    "fix": fix
-                })
-            # Handle cases where the model doesn't perfectly follow the format
-            elif len(parts) > 0:
-              clause_text = parts[0].strip()
-              unfair_clauses.append({
-                  "clause": clause_text,
-                  "risk": "Not specified",
-                  "fix": "Not provided"
-              })
+# File upload
+st.markdown('<label for="file-upload" class="sr-only">Upload your contract PDF</label>', unsafe_allow_html=True)
+uploaded_file = st.file_uploader("**Upload your contract (PDF)**", type="pdf", key="file-upload", help="We never store your files after analysis")
 
-    return {
-        "document_type": "contract",
-        "summary": "Contract Analysis Complete",
-        "unfair_clauses": unfair_clauses
-    }
-
-def format_analysis_for_layman(analysis_result):
-    output = "This document appears to be a contract.\n\n"
-    if analysis_result["unfair_clauses"]:
-        output += "**Potentially Problematic Clauses Identified:**\n\n"
-        for i, clause_analysis in enumerate(analysis_result["unfair_clauses"]):
-            output += f"--- Clause {i+1} ---\n"
-            output += f"**Quoted Text:** {clause_analysis['clause']}\n"
-            output += f"**Potential Risk:** {clause_analysis['risk']}\n"
-            output += f"**Suggested Fix:** {clause_analysis['fix']}\n\n"
+if uploaded_file:
+    if uploaded_file.size > 10 * 1024 * 1024:
+        st.warning("File size exceeds 10MB. Please upload a smaller file.")
     else:
-        output += "No specific unfair clauses were identified in this initial analysis.\n"
-    return output
+        with st.spinner("🔍 Scanning your contract..."):
+            progress = st.progress(0)
+            progress.progress(33)
+            try:
+                response = requests.post("https://fineprint.onrender.com/analyze", files={"file": uploaded_file}, timeout=30)
+                progress.progress(66)
+                if response.status_code == 200:
+                    progress.progress(100)
+                    data = response.json()
+                    st.success("Analysis complete!")
+                    
+                    # Tabs
+                    tab1, tab2 = st.tabs(["📋 Plain English Summary", "📊 Detailed Analysis"])
+                    
+                    with tab1:
+                        for i, clause in enumerate(data["result_json"]["unfair_clauses"]):
+                            with st.expander(f"Clause {i+1}: {clause['clause'][:50]}..."):
+                                st.markdown(f"**Risk:** {clause['risk']}")
+                                st.markdown(f"**Fix:** {clause['fix']}")
+                        
+                        st.divider()
+                        st.markdown("**Found something shady?**")
+                        cols = st.columns(3)
+                        
+                        # Share (placeholder)
+                        cols[0].button("Share Analysis 🔗")
+                        
+                        # Copy
+                        def copy_to_clipboard(text):
+                            components.html(f"""
+                            <button onclick="copyText()">Copy Results 📋</button>
+                            <script>
+                            function copyText() {{
+                                navigator.clipboard.writeText(`{text}`);
+                                alert("Results copied to clipboard!");
+                            }}
+                            </script>
+                            """, height=50)
+                        cols[1].button("Copy Results 📋", on_click=copy_to_clipboard, args=(data["result_text"],))
+                        
+                        # Download
+                        cols[2].download_button(
+                            "Save as PDF 💾",
+                            data=data["result_text"],
+                            file_name=f"contract-analysis-{datetime.now().date()}.txt",
+                            mime="text/plain"
+                        )
+                    
+                    with tab2:
+                        st.json(data["result_json"])
+                
+                else:
+                    st.error("Error: Could not analyze contract.")
+                    if st.button("Retry"):
+                        st.experimental_rerun()
+            except Exception as e:
+                st.error(f"Connection error: {str(e)}")
+                if st.button("Retry"):
+                    st.experimental_rerun()
 
-@app.route('/analyze', methods=['POST'])
-def analyze():
-    try:
-        if 'file' not in request.files:
-            return jsonify({"error": "No file uploaded"}), 400
+# Sidebar feedback
+with st.sidebar:
+    st.markdown("### Help Improve FinePrint")
+    with st.form(key='feedback'):
+        rating = st.slider("How useful was this?", 1, 5, 3)
+        comments = st.text_area("What could be better?")
+        submitted = st.form_submit_button("Submit Feedback")
+        if submitted:
+            st.success("Thanks! We'll use this to improve.")
 
-        pdf_file = request.files['file']
-
-        if not pdf_file.filename.lower().endswith('.pdf'):
-            return jsonify({"error": "Only PDF files are supported"}), 400
-
-        try:
-            text = PyPDF2.PdfReader(pdf_file).pages[0].extract_text()[:3000]
-            if not text.strip():
-                return jsonify({"error": "Empty PDF or no text extracted"}), 400
-        except Exception as e:
-            return jsonify({"error": f"PDF processing error: {str(e)}"}), 400
-
-        prompt = """
-        Analyze the following contract and identify potentially unfair clauses. 
-        Focus on clauses that could disadvantage one party.
-        For each such clause, provide:
-
-        1.  [EXACT QUOTE] - Copy the full clause text.
-        2.  [RISK] - Explain the legal/business risk in plain language (1-2 sentences).
-        3.  [FIX] - Suggest specific alternative wording to make it fairer.
-
-        Separate each part with "|||".  Separate each clause analysis with two newlines.
-
-        Example:
-        1.  "Consultant may not replace staff without approval" ||| 
-        2.  Risk: This gives the client excessive control and could delay the project if approval is slow. ||| 
-        3.  Fix: "Consultant may replace staff with equally qualified personnel, with notice to Client."
-
-        Pay special attention to:
-        -   Termination clauses (especially unequal notice)
-        -   Indemnification (if one-sided or overly broad)
-        -   Intellectual property ownership
-        -   Liability limitations
-        -   Payment terms
-        """
-
-        response = model.generate_content(
-            prompt + text,
-            generation_config={"temperature": 0.2}
-        )
-
-        raw_output = response.text if hasattr(response, 'text') else str(response)
-        cleaned = clean_analysis(raw_output)
-        layman_output = format_analysis_for_layman(cleaned)
-
-        return jsonify({"result_json": cleaned, "result_text": layman_output}), 200
-
-    except Exception as e:
-        return jsonify({"error": f"Analysis failed: {str(e)}"}), 500
-
-if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000, debug=True)
+# Footer
+st.markdown("---")
+st.markdown("""
+<small>
+⚠️ Disclaimer: FinePrint AI provides educational insights only, not legal advice. 
+Consult an attorney for contract review.
+</small>
+""", unsafe_allow_html=True)
