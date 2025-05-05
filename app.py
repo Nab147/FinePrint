@@ -20,9 +20,10 @@ st.markdown("""
         width: 100%;
     }
     @media (max-width: 768px) {
-        .stMarkdown h1 {
-            font-size: 1.5rem !important;
-        }
+        .logo-container {
+        flex-direction: column;
+        align-items: flex-start;
+    }
     }
 </style>
 """, unsafe_allow_html=True)
