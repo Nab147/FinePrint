@@ -16,11 +16,11 @@ st.markdown("""
         .header-container {
             display: flex;
             align-items: center;
-            gap: 1000px;
+            gap: 100px;
             margin-bottom: 1rem;
         }
         .header-logo img {
-            height: 80px;
+            height: 60px;
         }
         .header-text h1 {
             font-size: 2rem;
