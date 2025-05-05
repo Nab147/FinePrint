@@ -35,7 +35,7 @@ st.markdown("""
     </style>
     <div class="header-container">
         <div class="header-logo">
-            <img src="images/logo.png" alt="Logo">
+            <img src="images/logo.png">
         </div>
         <div class="header-text">
             <h1>FinePrint AI</h1>
@@ -43,14 +43,7 @@ st.markdown("""
         </div>
     </div>
 """, unsafe_allow_html=True)
-cols = st.columns([1, 9])
-with cols[0]:
-    st.image("images/logo.png", width=60)
-with cols[1]:
-    st.markdown("""
-        <h1 style='margin-bottom: 0;'>FinePrint AI</h1>
-        <p style='margin-top: 0;'>📌 Spot shady contract clauses in seconds. We never store your files after analysis.</p>
-    """, unsafe_allow_html=True)
+
 #--------------------------------------------------------------------------------------------------
 # Header with logo
 #col1, col2 = st.columns([1, 8])
