@@ -40,12 +40,12 @@ with st.container():
         """, unsafe_allow_html=True)
 #--------------------------------------------------------------------------------------------------
 # Header with logo
-col1, col2 = st.columns([1, 8])
-with col1:
-    st.image("images/logo.png", width=80)
-with col2:
-    st.title("FinePrint AI")
-    st.caption("📌 Spot shady contract clauses in seconds. We never store your files after analysis. ")
+#col1, col2 = st.columns([1, 8])
+#with col1:
+#    st.image("images/logo.png", width=80)
+#with col2:
+#    st.title("FinePrint AI")
+#    st.caption("📌 Spot shady contract clauses in seconds. We never store your files after analysis. ")
 
 # File upload
 uploaded_file = st.file_uploader(
