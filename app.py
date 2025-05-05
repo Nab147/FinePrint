@@ -13,17 +13,13 @@ st.set_page_config(
 # CSS for better mobile display
 st.markdown("""
 <style>
-    .stButton>button {
-        width: 100%;
+    .logo-container {
+        display: flex;
+        align-items: center;
+        gap: 20px;
     }
-    .stDownloadButton>button {
-        width: 100%;
-    }
-    @media (max-width: 768px) {
-        .logo-container {
-        flex-direction: column;
-        align-items: flex-start;
-    }
+    .logo-img {
+        margin-bottom: 10px; /* Adjust this if needed */
     }
 </style>
 """, unsafe_allow_html=True)
