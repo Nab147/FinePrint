@@ -80,7 +80,11 @@ if uploaded_file:
                 tab1, tab2 = st.tabs(["📋 Plain English Summary", "📊 Detailed Analysis"])
                 
                 with tab1:
-                    st.markdown(data["result_text"])
+                    cleaned_text = data["result_text"].replace("Quoted Text:", "**• Quoted Text:**") \
+                                      .replace("Potential Risk:", "**• Potential Risk:**") \
+                                      .replace("Suggested Fix:", "**• Suggested Fix:**") \
+                                      .replace("--- Clause", "\n--- Clause")
+                    st.markdown(cleaned_text, unsafe_allow_html=True)
                     
                     # Sharing options
                     st.divider()
