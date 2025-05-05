@@ -16,7 +16,7 @@ st.markdown("""
         .header-container {
             display: flex;
             align-items: center;
-            gap: 60px;
+            gap: 30px;
             margin-bottom: 1rem;
         }
         .header-logo img {
