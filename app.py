@@ -43,6 +43,14 @@ st.markdown("""
         </div>
     </div>
 """, unsafe_allow_html=True)
+cols = st.columns([1, 9])
+with cols[0]:
+    st.image("images/logo.png", width=60)
+with cols[1]:
+    st.markdown("""
+        <h1 style='margin-bottom: 0;'>FinePrint AI</h1>
+        <p style='margin-top: 0;'>📌 Spot shady contract clauses in seconds. We never store your files after analysis.</p>
+    """, unsafe_allow_html=True)
 #--------------------------------------------------------------------------------------------------
 # Header with logo
 #col1, col2 = st.columns([1, 8])
