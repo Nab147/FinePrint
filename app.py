@@ -28,7 +28,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # Header with logo
-col1, col2 = st.columns([1, 2])
+col1, col2 = st.columns([1, 8])
 with col1:
     st.image("images/logo.png", width=80)
 with col2:
