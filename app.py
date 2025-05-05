@@ -12,32 +12,37 @@ st.set_page_config(
 
 # CSS for better mobile display
 st.markdown("""
-<style>
-    .logo-container {
-        display: flex;
-        align-items: center;
-        gap: 20px;
-    }
-    .logo-img {
-        margin-bottom: 10px; /* Adjust this if needed */
-    }
-</style>
-""", unsafe_allow_html=True)
-
-#---------------------------------------------------------------------------------------------------------------
-with st.container():
-    cols = st.columns([1, 8])
-    with cols[0]:
-        st.image("images/logo.png", width=80, output_format="PNG")  # Added output_format for better rendering
-    with cols[1]:
-        st.markdown("""
-        <div class="logo-container">
-            <div>
-                <h1 style="margin-bottom: 0; padding-bottom: 0;">FinePrint AI</h1>
-                <p style="margin-top: 0; padding-top: 0;">📌 Spot shady contract clauses in seconds. We never store your files after analysis.</p>
-            </div>
+    <style>
+        .header-container {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            margin-bottom: 1rem;
+        }
+        .header-logo img {
+            height: 60px;
+        }
+        .header-text h1 {
+            font-size: 2rem;
+            margin: 0;
+            padding: 0;
+        }
+        .header-text p {
+            margin: 4px 0 0 0;
+            font-size: 0.95rem;
+            color: #ccc;
+        }
+    </style>
+    <div class="header-container">
+        <div class="header-logo">
+            <img src="images/logo.png" alt="Logo">
         </div>
-        """, unsafe_allow_html=True)
+        <div class="header-text">
+            <h1>FinePrint AI</h1>
+            <p>📌 Spot shady contract clauses in seconds. We never store your files after analysis.</p>
+        </div>
+    </div>
+""", unsafe_allow_html=True)
 #--------------------------------------------------------------------------------------------------
 # Header with logo
 #col1, col2 = st.columns([1, 8])
