@@ -30,7 +30,7 @@ st.markdown("""
 # Header with logo
 col1, col2 = st.columns([1, 4])
 with col1:
-    st.image("https://via.placeholder.com/100x100?text=FP", width=80)
+    st.image("images/logo.png", width=80)
 with col2:
     st.title("FinePrint AI")
     st.caption("📌 Spot shady contract clauses in seconds. We never store your files after analysis. ")
