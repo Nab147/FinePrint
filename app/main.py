@@ -7,7 +7,7 @@ app = Flask(__name__)
 
 # Configure Gemini
 genai.configure(api_key=os.getenv("Fineprint"))
-model = genai.GenerativeModel('gemini-1.5-pro')
+model = genai.GenerativeModel('gemini-1.0-pro')
 
 def clean_analysis(text):
     unfair_clauses = []
